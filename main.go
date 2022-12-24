@@ -6,28 +6,28 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
-var grassURL string = loadEnvURL()
+const layout = "2006-01-02"
 
 func main() {
 
-	getGrass(grassURL)
-}
+	var grassURL string = loadEnvURL()
 
-func loadEnvToken() string {
-	err := godotenv.Load(".env")
+	data_date, data_count := getGrass(grassURL)
 
-	if err != nil {
-		fmt.Printf(".envの読み込みに失敗しました: %v", err)
+	for i := 0; i < len(data_count); i++ {
+		t := time.Now()
+		if t.Format(layout) == data_date[i] {
+			fmt.Printf("this is data_date %s \ndata count is %d \n", t.Format(layout), data_count[i])
+		}
+
 	}
-
-	token := os.Getenv(("AccessToken"))
-
-	return token
 }
 
 func loadEnvURL() string {
@@ -42,7 +42,9 @@ func loadEnvURL() string {
 	return url
 }
 
-func getGrass(url string) {
+func getGrass(url string) ([500]string, [500]int) {
+	var data_count [500]int
+	var data_date [500]string
 	res, err := http.Get(url)
 	if err != nil {
 		fmt.Println("urlの取得がうまくできませんでした")
@@ -58,14 +60,21 @@ func getGrass(url string) {
 	result := regex3.Split(string(body), -1)
 	for i := 0; i < len(result); i++ {
 		arr := strings.Split(result[i], " ")
+
+		var temp_arr []string
+
 		for j := 0; j < len(arr); j++ {
 			if regex2.MatchString(arr[j]) {
-				fmt.Println(arr[j])
+				temp_arr = strings.Split(arr[j], "\"")
+				data_date[i] = temp_arr[1]
+
 			} else if regex1.MatchString(arr[j]) {
-				fmt.Println(arr[j])
+				temp_arr = strings.Split(arr[j], "\"")
+				num, _ := strconv.Atoi(temp_arr[1])
+				data_count[i] = num
 			}
 
 		}
-		fmt.Println()
 	}
+	return data_date, data_count
 }
